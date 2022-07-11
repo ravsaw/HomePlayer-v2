@@ -1,0 +1,47 @@
+﻿@page "/movielist"
+@using HomePlayer_SharedModel;
+@using HomePlayer_Blazor.Data;
+@inject MovieService MovieService
+
+<PageTitle>Lista filmów</PageTitle>
+
+<h1>Lista filmów</h1>
+
+@if (movies == null)
+{
+    <p><em>Ładowanie...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Tytuł</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var movie in movies)
+            {
+                <tr @onclick=" () => OnClickRow(movie)">
+                    <td>
+                        <a  href="movieplayer"> @movie.Title </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Movie> movies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        movies = await MovieService.GetMoviesAsync();
+    }
+
+    private void OnClickRow(Movie movie)
+    {
+        MovieService.SelectMovie(movie);
+    }
+}

@@ -1,0 +1,17 @@
+<p>movie-upload works!</p>
+
+<input #file type="file" (change)="upload(file.files!.item(0))" *ngIf="checkStatus('prep')" />
+
+<br />
+
+<span style="font-weight:bold;color:green;" *ngIf="checkStatus('working')">
+  {{progress}}%
+</span>
+
+<span style="font-weight:bold;color:green;" *ngIf="checkStatus('done')">
+  {{message}}
+</span>
+
+<p>
+  <progress showValue="true" type="success" value={{progress}} max="100" *ngIf="checkStatus('working')"></progress>
+</p>

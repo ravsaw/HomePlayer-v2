@@ -1,0 +1,16 @@
+<h1 id="tableLabel">Movies</h1>
+
+<p *ngIf="!movies"><em>Loading...</em></p>
+
+<table class='table table-striped' aria-labelledby="tableLabel" *ngIf="movies">
+  <thead>
+    <tr>
+      <th>Title</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let movie of movies">
+      <td><a [routerLinkActive]="['link-active']" [routerLink]="['/movie-player/{{ movie.title }}']">{{ movie.title }}</a></td>
+    </tr>
+  </tbody>
+</table>

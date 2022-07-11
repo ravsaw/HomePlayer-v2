@@ -1,0 +1,135 @@
+﻿@page "/movieupload"
+@using HomePlayer_SharedModel;
+@using HomePlayer_Blazor.Data;
+@using System.Linq
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using Microsoft.Extensions.Logging
+@inject IHttpClientFactory ClientFactory
+@inject MovieService MovieService
+
+
+@if (uploadResult == null)
+{
+
+    <h1>Upload Files</h1>
+
+    <EditForm Model="@movie" OnSubmit="HandleSubmit">
+        <p>
+            Tytuł : <InputText id="name" @bind-Value="movie.Title" />
+        </p>
+        <p>
+            Plik : <InputFile OnChange="@OnInputFileChange" />
+        </p>
+        <p>
+            <button type="submit">Submit</button>
+        </p>
+    </EditForm>
+}
+else
+{
+
+    <h1>Upload result</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <ul>
+                <li>
+                    File: @movie.Title
+                    <br>
+                    @if (@uploadResult.Uploaded)
+                    {
+                        <span>
+                            Stored File Name: @uploadResult.StoredFileName
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+                            There was an error uploading the file
+                            (Error: @uploadResult.ErrorCode).
+                        </span>
+                    }
+                </li>
+            </ul>
+        </div>
+    </div>
+}
+@code {
+    private IBrowserFile? selectedFile = null;
+    private Movie movie = new();
+    private UploadResult? uploadResult = null;
+    private bool shouldRender;
+
+    protected override bool ShouldRender() => shouldRender;
+
+    private async Task HandleSubmit()
+    {
+        if (selectedFile == null)
+        {
+            return;
+        }
+
+        shouldRender = false;
+        var upload = false;
+
+        using var content = new MultipartFormDataContent();
+
+        if (uploadResult?.FileName != movie.FileName)
+        {
+            try
+            {
+                var fileContent =
+                    new StreamContent(selectedFile.OpenReadStream(10737418240));
+
+                fileContent.Headers.ContentType =
+                    new MediaTypeHeaderValue(selectedFile.ContentType);
+
+                content.Add(
+                    content: fileContent,
+                    name: "\"file\"",
+                    fileName: movie.FileName);
+                content.Add(new StringContent(movie.Title), "Title");
+                content.Add(new StringContent(movie.FileName), "FileName");
+
+                upload = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{selectedFile.Name} not uploaded (Err: 6): {ex.Message}");
+
+                uploadResult = new()
+                    {
+                        FileName = movie.FileName,
+                        ErrorCode = 6,
+                        Uploaded = false
+                    };
+            }
+        }
+
+        if (upload)
+        {
+            var client = ClientFactory.CreateClient();
+            var response = await client.PostAsync("http://192.168.100.3:5090/movie", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, };
+                using var responseStream = await response.Content.ReadAsStreamAsync();
+                var newUploadResult = await JsonSerializer.DeserializeAsync<UploadResult>(responseStream, options);
+
+                if (newUploadResult is not null)
+                {
+                    uploadResult = newUploadResult;
+                }
+            }
+        }
+
+        shouldRender = true;
+    }
+
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+}
